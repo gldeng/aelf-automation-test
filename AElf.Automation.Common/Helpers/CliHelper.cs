@@ -344,7 +344,8 @@ namespace AElf.Automation.Common.Helpers
             JArray p = j["params"] == null ? null : JArray.Parse(j["params"].ToString());
             tr.Params = j["params"] == null ? null : method.SerializeParams(p.ToObject<string[]>());
             tr.type = TransactionType.ContractTransaction;
-                            
+            tr = tr.AddBlockReference(_rpcAddress);
+            
             _transactionManager.SignTransaction(tr);
             var rawtx = _transactionManager.ConvertTransactionRawTx(tr);
             
