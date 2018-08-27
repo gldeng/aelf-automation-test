@@ -15,7 +15,6 @@ using AElf.Automation.CliTesting.Screen;
 using AElf.Automation.CliTesting.Wallet;
 using AElf.Automation.CliTesting.Wallet.Exceptions;
 using AElf.Common.ByteArrayHelpers;
-using AElf.Common.Extensions;
 using AElf.Cryptography.ECDSA;
 using AElf.Kernel;
 using Newtonsoft.Json;

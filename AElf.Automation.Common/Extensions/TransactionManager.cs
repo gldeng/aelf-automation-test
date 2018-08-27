@@ -2,11 +2,10 @@
 using System.IO;
 using ProtoBuf;
 using Newtonsoft.Json.Linq;
-using AElf.Common.Extensions;
+using AElf.Kernel;
 using AElf.Cryptography;
 using AElf.Common.ByteArrayHelpers;
 using AElf.Cryptography.ECDSA;
-
 using Transaction = AElf.Automation.Common.Protobuf.Transaction;
 using TransactionType = AElf.Automation.Common.Protobuf.TransactionType;
 using System.Security.Cryptography;
@@ -125,10 +124,23 @@ namespace AElf.Automation.Common.Extensions
 
     public static class BlockMarkingHelper
     {
+        private static DateTime _refBlockTime = DateTime.Now;
+        private static ulong _cachedHeight;
+        private static string _cachedHash;
+
         public static Transaction AddBlockReference(this Transaction transaction, string rpcAddress)
         {
-            var height = ulong.Parse(GetBlkHeight(rpcAddress));
-            var hash = GetBlkHash(rpcAddress, height.ToString());
+            var height = _cachedHeight;
+            var hash = _cachedHash;
+            if (height == default(ulong) || (DateTime.Now - _refBlockTime).Seconds > 60)
+            {
+                height = ulong.Parse(GetBlkHeight(rpcAddress));
+                hash = GetBlkHash(rpcAddress, height.ToString());
+                _cachedHeight = height;
+                _cachedHash = hash;
+                _refBlockTime = DateTime.Now;
+            }
+
             transaction.RefBlockNumber = height;
             transaction.RefBlockPrefix = ByteArrayHelpers.FromHexString(hash).Where((b, i) => i < 4).ToArray();
             return transaction;
@@ -141,11 +153,6 @@ namespace AElf.Automation.Common.Extensions
             var resp = reqhttp.PostRequest("get_block_height", "{}", out returnCode);
             var jObj = JObject.Parse(resp);
             return jObj["result"]["result"]["block_height"].ToString();
-
-            //var reqhttp = new HttpRequestor(rpcAddress);
-            //var resp = reqhttp.DoRequest(new GetBlockHeightCmd().BuildRequest(new CmdParseResult()).ToString());
-            //var jObj = JObject.Parse(resp);
-            //return jObj["result"]["result"]["block_height"].ToString();
         }
 
         private static string GetBlkHash(string rpcAddress, string height)
@@ -155,12 +162,6 @@ namespace AElf.Automation.Common.Extensions
             var resp = reqhttp.PostRequest("get_block_info", "{\"block_height\":\""+ height +"\"}", out returnCode);
             var jObj = JObject.Parse(resp);
             return jObj["result"]["result"]["Blockhash"].ToString();
-
-            //var reqhttp = new HttpRequestor(rpcAddress);
-            //var cmdargs = new CmdParseResult { Args = new List<string>() { height } };
-            //var resp = reqhttp.DoRequest(new GetBlockInfoCmd().BuildRequest(cmdargs).ToString());
-            //var jObj = JObject.Parse(resp);
-            //return jObj["result"]["result"]["Blockhash"].ToString();
         }
     }
 }
