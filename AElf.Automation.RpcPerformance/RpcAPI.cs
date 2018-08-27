@@ -254,7 +254,8 @@ namespace AElf.Automation.RpcPerformance
             ci.GetJsonInfo();
             string increNo = ci.JsonInfo["result"]["result"]["increment"].ToString();
 
-            int number = Int32.Parse(increNo);
+            //int number = Int32.Parse(increNo);
+            int number = 0;
 
             HashSet<int> set = new HashSet<int>();
             List<string> txIdList = new List<string>();
@@ -322,7 +323,8 @@ namespace AElf.Automation.RpcPerformance
             Assert.IsTrue(ci.Result);
             ci.GetJsonInfo();
             string increNo = ci.JsonInfo["result"]["result"]["increment"].ToString();
-            int number = Int32.Parse(increNo);
+            //int number = Int32.Parse(increNo);
+            int number = 0;
 
             HashSet<int> set = new HashSet<int>();
             
@@ -386,7 +388,8 @@ namespace AElf.Automation.RpcPerformance
             Assert.IsTrue(ci.Result);
             ci.GetJsonInfo();
             string increNo = ci.JsonInfo["result"]["result"]["increment"].ToString();
-            int number = Int32.Parse(increNo);
+            //int number = Int32.Parse(increNo);
+            int number = 0;
 
             HashSet<int> set = new HashSet<int>();
             for (int i = 0; i < times; i++)

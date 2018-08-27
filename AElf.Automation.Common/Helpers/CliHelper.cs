@@ -34,6 +34,7 @@ namespace AElf.Automation.Common.Helpers
 
         public CliHelper(string rpcUrl)
         {
+            _rpcAddress = rpcUrl;
             _keyStore = new AElfKeyStore(ApplicationHelpers.GetDefaultDataDir());
             _accountManager = new AccountManager(_keyStore);
             _transactionManager = new TransactionManager(_keyStore);
@@ -204,6 +205,7 @@ namespace AElf.Automation.Common.Helpers
             Transaction tx = _transactionManager.CreateTransaction(ci.Parameter.Split(" ")[2], _genesisAddress,
                 ci.Parameter.Split(" ")[1],
                 "DeploySmartContract", serializedParams, TransactionType.ContractTransaction);
+            tx = tx.AddBlockReference(_rpcAddress);
             if (tx == null)
                 return;
             tx = _transactionManager.SignTransaction(tx);
@@ -264,7 +266,8 @@ namespace AElf.Automation.Common.Helpers
             JArray p = j["params"] == null ? null : JArray.Parse(j["params"].ToString());
             tr.Params = j["params"] == null ? null : method.SerializeParams(p.ToObject<string[]>());
             tr.type = TransactionType.ContractTransaction;
-                            
+            tr = tr.AddBlockReference(_rpcAddress);
+            
             _transactionManager.SignTransaction(tr);
             var rawtx = _transactionManager.ConvertTransactionRawTx(tr);
             var req = RpcRequestManager.CreateRequest(rawtx, ci.Category, 1);

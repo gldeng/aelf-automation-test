@@ -10,6 +10,8 @@ using AElf.Cryptography.ECDSA;
 using Transaction = AElf.Automation.Common.Protobuf.Transaction;
 using TransactionType = AElf.Automation.Common.Protobuf.TransactionType;
 using System.Security.Cryptography;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace AElf.Automation.Common.Extensions
 {
@@ -118,6 +120,47 @@ namespace AElf.Automation.Common.Extensions
 
                 return null;
             }
+        }
+    }
+
+    public static class BlockMarkingHelper
+    {
+        public static Transaction AddBlockReference(this Transaction transaction, string rpcAddress)
+        {
+            var height = ulong.Parse(GetBlkHeight(rpcAddress));
+            var hash = GetBlkHash(rpcAddress, height.ToString());
+            transaction.RefBlockNumber = height;
+            transaction.RefBlockPrefix = ByteArrayHelpers.FromHexString(hash).Where((b, i) => i < 4).ToArray();
+            return transaction;
+        }
+
+        private static string GetBlkHeight(string rpcAddress)
+        {
+            var reqhttp = new RpcRequestManager(rpcAddress);
+            string returnCode = string.Empty;
+            var resp = reqhttp.PostRequest("get_block_height", "{}", out returnCode);
+            var jObj = JObject.Parse(resp);
+            return jObj["result"]["result"]["block_height"].ToString();
+
+            //var reqhttp = new HttpRequestor(rpcAddress);
+            //var resp = reqhttp.DoRequest(new GetBlockHeightCmd().BuildRequest(new CmdParseResult()).ToString());
+            //var jObj = JObject.Parse(resp);
+            //return jObj["result"]["result"]["block_height"].ToString();
+        }
+
+        private static string GetBlkHash(string rpcAddress, string height)
+        {
+            var reqhttp = new RpcRequestManager(rpcAddress);
+            string returnCode = string.Empty;
+            var resp = reqhttp.PostRequest("get_block_info", "{\"block_height\":\""+ height +"\"}", out returnCode);
+            var jObj = JObject.Parse(resp);
+            return jObj["result"]["result"]["Blockhash"].ToString();
+
+            //var reqhttp = new HttpRequestor(rpcAddress);
+            //var cmdargs = new CmdParseResult { Args = new List<string>() { height } };
+            //var resp = reqhttp.DoRequest(new GetBlockInfoCmd().BuildRequest(cmdargs).ToString());
+            //var jObj = JObject.Parse(resp);
+            //return jObj["result"]["result"]["Blockhash"].ToString();
         }
     }
 }
