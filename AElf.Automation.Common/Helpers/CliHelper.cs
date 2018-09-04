@@ -28,7 +28,6 @@ namespace AElf.Automation.Common.Helpers
         private RpcRequestManager _requestManager;
         
         private Dictionary<string, Module> _loadedModules;
-        private ILogHelper Logger = LogHelper.GetLogHelper();
 
         
         public List<CommandInfo> CommandList { get; set; }
@@ -96,7 +95,7 @@ namespace AElf.Automation.Common.Helpers
                     RpcSetBlockVolume(ci);
                     break;
                 default:
-                    Logger.WriteError("Invalide command.");
+                    Console.WriteLine("Invalide command.");
                     break;
             }
             
@@ -486,13 +485,12 @@ namespace AElf.Automation.Common.Helpers
         
         public void RpcGetBlockInfo(CommandInfo ci)
         {
-            if (!ci.CheckParameterValid(2))
+            if (!ci.CheckParameterValid(1))
                 return;
             
             var req = RpcRequestManager.CreateRequest(new JObject
             {
-                ["block_height"] = ci.Parameter.Split(" ")?[0],
-                ["include_txs"] = ci.Parameter.Split(" ")?[1]
+                ["block_height"] = ci.Parameter
             }, ci.Category, 0);
             string returnCode = string.Empty;
             long timeSpan = 0;

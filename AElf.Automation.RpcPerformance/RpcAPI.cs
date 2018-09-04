@@ -50,7 +50,6 @@ namespace AElf.Automation.RpcPerformance
         public int ThreadCount { get; set; }
         public int ExeTimes { get; set; }
         public ConcurrentQueue<string> ContractRpcList { get; set; }
-        public ILogHelper Logger = LogHelper.GetLogHelper();
         #endregion
 
         public RpcAPI(int threadCount, 
@@ -69,14 +68,16 @@ namespace AElf.Automation.RpcPerformance
             ExeTimes = exeTimes;
             RpcUrl = rpcUrl;
             KeyStorePath = Path.Combine(keyStorePath, "keys");
-            Logger.WriteInfo("Rpc Url: {0}", RpcUrl);
-            Logger.WriteInfo("Key Store Path: {0}", KeyStorePath);
+            Console.WriteLine("Rpc Url: {0}", RpcUrl);
+            Console.WriteLine("Key Store Path: {0}", KeyStorePath);
         }
 
         public void PrepareEnv()
         {
-            Logger.WriteInfo("Preare new and unlock accounts.");
             CH = new CliHelper(RpcUrl);
+
+            //Delete
+            DeleteAccounts();
             //New
             NewAccounts(1000);
             //Unlock Account
@@ -120,7 +121,6 @@ namespace AElf.Automation.RpcPerformance
             int count = 0;
             while(true)
             {
-                Thread.Sleep(2000);
                 foreach(dynamic item in contractList)
                 {
                     if(item.Result == false)
@@ -146,11 +146,14 @@ namespace AElf.Automation.RpcPerformance
                 }
                 if (count == contractList.Count)
                     break;
+                else
+                    Thread.Sleep(1000);
             }
         }
 
         public void InitializeContract()
         {
+            List<string> txIdList = new List<string>();
             for (int i = 0; i < ContractList.Count; i++)
             {
                 string account = AccountList[ContractList[i].AccountId].Account;
@@ -202,7 +205,7 @@ namespace AElf.Automation.RpcPerformance
 
         public void ExecuteContracts()
         {
-            Logger.WriteInfo("Start contract execution at: {0}", DateTime.Now.ToString());
+            Console.WriteLine("Start contract execution at: {0}", DateTime.Now.ToString());
             Stopwatch exec = new Stopwatch();
             exec.Start();
             List<Task> contractTasks = new List<Task>();
@@ -214,14 +217,14 @@ namespace AElf.Automation.RpcPerformance
             
             Task.WaitAll(contractTasks.ToArray<Task>());
             exec.Stop();
-            Logger.WriteInfo("End contract execution at: {0}", DateTime.Now.ToString());
-            Logger.WriteInfo("Execution time: {0}", exec.ElapsedMilliseconds);
+            Console.WriteLine("End contract execution at: {0}", DateTime.Now.ToString());
+            Console.WriteLine("Execution time: {0}", exec.ElapsedMilliseconds);
             GetExecutedAccount();
         }
 
         public void ExecuteContractsRpc()
         {
-            Logger.WriteInfo("Start all generate rpc request at: {0}", DateTime.Now.ToString());
+            Console.WriteLine("Start all generate rpc request at: {0}", DateTime.Now.ToString());
             Stopwatch exec = new Stopwatch();
             exec.Start();
             List<Task> contractTasks = new List<Task>();
@@ -233,8 +236,8 @@ namespace AElf.Automation.RpcPerformance
 
             Task.WaitAll(contractTasks.ToArray<Task>());
             exec.Stop();
-            Logger.WriteInfo("All rpc requests completed at: {0}", DateTime.Now.ToString());
-            Logger.WriteInfo("Execution time: {0}", exec.ElapsedMilliseconds);
+            Console.WriteLine("All rpc requests completed at: {0}", DateTime.Now.ToString());
+            Console.WriteLine("Execution time: {0}", exec.ElapsedMilliseconds);
         }
         
         //Without conflict group category
@@ -302,10 +305,10 @@ namespace AElf.Automation.RpcPerformance
                 }
                 Thread.Sleep(20);
             }
-            Logger.WriteInfo("Total contract sent: {0}, passed number: {1}", 2*times, passCount);
+            Console.WriteLine("Total contract sent: {0}, passed number: {1}", 2*times, passCount);
             txIdList.Reverse();
             CheckResultStatus(txIdList);
-            Logger.WriteInfo("{0} Transfer from Address {1}", set.Count, account);
+            Console.WriteLine("{0} Transfer from Address {1}", set.Count, account);
         }
 
         public void GenerateContractList(int threadNo, int times)
@@ -357,7 +360,7 @@ namespace AElf.Automation.RpcPerformance
                 rpcRequest.Add(requestInfo);
                 number++;
             }
-            Logger.WriteInfo("Thread [{0}] contracts rpc list from account :{1} and contract abi: {2} generated completed.",threadNo, account, abiPath);
+            Console.WriteLine("Thread [{0}] contracts rpc list from account :{1} and contract abi: {2} generated completed.",threadNo, account, abiPath);
             //Send RPC Requests
             ci = new CommandInfo("broadcast_txs");
             foreach(var rpc in rpcRequest)
@@ -368,9 +371,9 @@ namespace AElf.Automation.RpcPerformance
             CH.ExecuteCommand(ci);
             Assert.IsTrue(ci.Result);
             var result = ci.InfoMsg[0].Replace("[", "").Replace("]", "").Split(",");
-            Logger.WriteInfo("Batch request count: {0}, Pass count: {1} at {2}", rpcRequest.Count, result.Length, DateTime.Now.ToString("HH:mm:ss.fff"));
-            Logger.WriteInfo("Thread [{0}] completeed executed {1} times contracts work at {2}.", threadNo, times, DateTime.Now.ToString());
-            Logger.WriteInfo("{0} Transfer from Address {1}", set.Count, account);
+            Console.WriteLine("Batch request count: {0}, Pass count: {1} at {2}", rpcRequest.Count, result.Length, DateTime.Now.ToString("HH:mm:ss.fff"));
+            Console.WriteLine("Thread [{0}] completeed executed {1} times contracts work at {2}.", threadNo, times, DateTime.Now.ToString());
+            Console.WriteLine("{0} Transfer from Address {1}", set.Count, account);
         }
 
         public void GenerateRpcList(int threadNo, int times)
@@ -430,7 +433,7 @@ namespace AElf.Automation.RpcPerformance
             {
                 if (!ContractRpcList.TryDequeue(out rpcMsg))
                     break;
-                Logger.WriteInfo("Contracts execution left: {0}", ContractRpcList.Count);
+                Console.WriteLine("Contracts execution left: {0}", ContractRpcList.Count);
                 var ci = new CommandInfo("broadcast_tx");
                 ci.Parameter = rpcMsg;
                 CH.ExecuteCommand(ci);
@@ -442,7 +445,7 @@ namespace AElf.Automation.RpcPerformance
 
         public void ExecuteMultiTask(int threadCount =4)
         {
-            Logger.WriteInfo("Begin generate multi rpc requests.");
+            Console.WriteLine("Begin generate multi rpc requests.");
             List<Task> genRpcTasks = new List<Task>();
             for(int i=0; i<ThreadCount; i++)
             {
@@ -451,7 +454,7 @@ namespace AElf.Automation.RpcPerformance
             }
             Task.WaitAll(genRpcTasks.ToArray<Task>());
 
-            Logger.WriteInfo("Begin execute multi rpc contracts.");
+            Console.WriteLine("Begin execute multi rpc contracts.");
             List<Task> contractTasks = new List<Task>();
             for (int i = 0; i < threadCount; i++)
             {
@@ -461,23 +464,16 @@ namespace AElf.Automation.RpcPerformance
 
             Task.WaitAll(contractTasks.ToArray<Task>());
         }
-
-        public void DeleteAccounts()
-        {
-            foreach (var item in AccountList)
-            {
-                string file = Path.Combine(KeyStorePath, $"{item.Account}.ak");
-                File.Delete(file);
-            }
-        }
-
+        
         #region Private Method
         private void CheckResultStatus(List<string> idList)
         {
-            Thread.Sleep(4000);
             int length = idList.Count;
             for(int i= length-1; i>=0; i--)
             {
+                //CommandRequest txReq = new CommandRequest("get_tx_result", $"get_tx_result {idList[i]}");
+                //txReq.Result = Instance.ExecuteCommandWithPerformance(txReq.Command, out txReq.InfoMessage, out txReq.ErrorMessage, out txReq.TimeInfo);
+                //RequestList.Add(txReq);
                 var ci = new CommandInfo("get_tx_result");
                 ci.Parameter = idList[i];
                 CH.ExecuteCommand(ci);
@@ -489,16 +485,19 @@ namespace AElf.Automation.RpcPerformance
                     if (deployResult == "Mined")
                         idList.Remove(idList[i]);
                 }
-                Thread.Sleep(50);
+                Thread.Sleep(10);
             }
             if (idList.Count > 0 && idList.Count != 1)
             {
-                Logger.WriteInfo("***************** {0} ******************", idList.Count);
+                Console.WriteLine("***************** {0} ******************", idList.Count);
                 CheckResultStatus(idList);
             }
             if(idList.Count == 1)
             {
-                Logger.WriteInfo("Last one: {0}", idList[0]);
+                Console.WriteLine("Last one: {0}", idList[0]);
+                //CommandRequest txReq = new CommandRequest("get_tx_result", $"get_tx_result {idList[0]}");
+                //txReq.Result = Instance.ExecuteCommandWithPerformance(txReq.Command, out txReq.InfoMessage, out txReq.ErrorMessage, out txReq.TimeInfo);
+                //RequestList.Add(txReq);
                 var ci = new CommandInfo("get_tx_result");
                 ci.Parameter = idList[0];
                 CH.ExecuteCommand(ci);
@@ -509,23 +508,35 @@ namespace AElf.Automation.RpcPerformance
                     string deployResult = ci.JsonInfo["result"]["result"]["tx_status"].ToString();
                     if (deployResult != "Mined")
                     {
-                        Thread.Sleep(50);
+                        Thread.Sleep(10);
                         CheckResultStatus(idList);
                     }
                 }
             }
 
-            Thread.Sleep(50);
+            Thread.Sleep(10);
         }
 
         private void UnlockAllAccounts(int count)
         {
+            GetAccountList();
             for(int i=0; i<count; i++)
             {
                 var ci = new CommandInfo("account unlock", "account");
                 ci.Parameter = String.Format("{0} {1} {2}", AccountList[i].Account, "123", "notimeout");
                 ci = CH.ExecuteCommand(ci);
                 Assert.IsTrue(ci.Result);
+                //CommandRequest cmdReq = new CommandRequest($"account unlock {AccountList[i].Account} 123 notimeout");
+                //cmdReq.Result = Instance.ExecuteCommand(cmdReq.Command, out cmdReq.InfoMessage, out cmdReq.ErrorMessage);
+                //Assert.IsTrue(cmdReq.Result);
+            }
+        }
+
+        private void DeleteAccounts()
+        {
+            foreach (var item in Directory.GetFiles(KeyStorePath, "*.ak"))
+            {
+                File.Delete(item);
             }
         }
 
@@ -533,12 +544,42 @@ namespace AElf.Automation.RpcPerformance
         {
             for (int i = 0; i < count; i++)
             {
+                //CommandRequest cmdReq = new CommandRequest("account new 123");
+                //cmdReq.Result = Instance.ExecuteCommand(cmdReq.Command, out cmdReq.InfoMessage, out cmdReq.ErrorMessage);
+                //Assert.IsTrue(cmdReq.Result);
+
                 var ci = new CommandInfo("account new", "account");
                 ci.Parameter = "123";
                 ci = CH.ExecuteCommand(ci);
                 Assert.IsTrue(ci.Result);
-                AccountList.Add(new AccountInfo(ci.InfoMsg?[0].Replace("Account address:","").Trim()));
             }
+        }
+
+        private void GetAccountList()
+        {
+            var ci = new CommandInfo("account list", "account");
+            ci = CH.ExecuteCommand(ci);
+            Assert.IsTrue(ci.Result);
+            if (ci.InfoMsg.Count != 0)
+            {
+                foreach (var item in ci.InfoMsg)
+                {
+                    AccountList.Add(new AccountInfo(item));
+                }
+            }
+            /*
+            var fileList = Directory.GetFiles(KeyStorePath, "*.ak");
+            foreach (var item in fileList)
+            {
+                string[] fileInfo;
+                if (item.Contains("/"))
+                    fileInfo = item.Split("/");
+                else
+                    fileInfo = item.Split("\\");
+                string account = fileInfo[fileInfo.Length - 1].Replace(".ak", "");
+                AccountList.Add(new AccountInfo(account));
+            }
+            */
         }
 
         private void GetExecutedAccount()
@@ -548,7 +589,7 @@ namespace AElf.Automation.RpcPerformance
             foreach(var item in accounts)
             {
                 count++;
-                Logger.WriteInfo("{0:000} Account: {1}, Execution times: {2}", count, item.Account, item.Increment);
+                Console.WriteLine("{0:000} Account: {1}, Execution times: {2}", count, item.Account, item.Increment);
             }
         }
         
@@ -568,12 +609,12 @@ namespace AElf.Automation.RpcPerformance
 
         public void PrintContractInfo()
         {
-            Logger.WriteInfo("Execution account and contract abi information:");
+            Console.WriteLine("Execution account and contract abi information:");
             int count = 0;
             foreach (var item in ContractList)
             {
                 count++;
-                Logger.WriteInfo("{0:00}. Account: {1}, AbiPath:{2}",count, AccountList[item.AccountId].Account, item.AbiPath);
+                Console.WriteLine("{0:00}. Account: {1}, AbiPath:{2}",count, AccountList[item.AccountId].Account, item.AbiPath);                
             }
         }
         #endregion
