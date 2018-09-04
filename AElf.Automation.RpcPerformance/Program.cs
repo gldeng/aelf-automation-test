@@ -1,16 +1,24 @@
 ﻿using System;
+using System.IO;
 using AElf.Automation.Common.Extensions;
+using AElf.Automation.Common.Helpers;
 
 namespace AElf.Automation.RpcPerformance
 {
     public class Program
     {
+        public static ILogHelper Logger = LogHelper.GetLogHelper();
         static void Main(string[] args)
         {
+            //Init Logger
+            string logName = "RpcPerformance" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".log";
+            string dir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", logName);
+            Logger.InitLogHelper(dir);
+
             RpcAPI performance;
             if(args.Length == 1)
             {
-                performance = new RpcAPI(8, 2000, args[0]);
+                performance = new RpcAPI(4, 50, args[0]);
             }
             else if (args.Length==3)
             {
@@ -28,37 +36,57 @@ namespace AElf.Automation.RpcPerformance
                 performance = new RpcAPI(8, 2000);
 
             //Execute command
-            performance.PrepareEnv();
-            performance.InitExecRpcCommand();
-            performance.DeployContract();
-            performance.InitializeContract();
-            performance.LoadAllContractAbi();
-            ExecuteRpcTask(performance);
-            
+            try
+            {
+                performance.PrepareEnv();
+                performance.InitExecRpcCommand();
+                performance.DeployContract();
+                performance.InitializeContract();
+                performance.LoadAllContractAbi();
+
+                bool autoTest = args?.Length == 1;
+                ExecuteRpcTask(performance, autoTest);
+            }
+            catch (Exception e)
+            {
+                Logger.WriteError(e.Message);
+            }
+            finally
+            {
+                //Delete accounts
+                performance.DeleteAccounts();
+            }
+
             //Result summary
             CategoryInfoSet set = new CategoryInfoSet(performance.CH.CommandList);
             set.GetCategoryBasicInfo();
             set.GetCategorySummaryInfo();
             set.SaveTestResultXml(performance.ThreadCount);
 
-            Console.WriteLine("Complete performance testing.");
+            Logger.WriteInfo("Complete performance testing.");
             Console.ReadLine();
         }
 
-        private static void ExecuteRpcTask(RpcAPI performance)
+        private static void ExecuteRpcTask(RpcAPI performance, bool autoTest=false)
         {
-            Console.WriteLine("Select execution type:");
+            Logger.WriteInfo("Select execution type:");
             Console.WriteLine("1. Normal mode");
             Console.WriteLine("2. Avage mode");
             Console.WriteLine("3. Batch mode");
             Console.Write("Input selection: ");
-            string runType = Console.ReadLine();
+
             int result = 0;
-            bool check = Int32.TryParse(runType, out result);
-            if (!check)
+            if (autoTest)
+                result = 3;
+            else
             {
-                Console.WriteLine("Wrong input, please input again.");
-                ExecuteRpcTask(performance);
+                string runType = Console.ReadLine();
+                bool check = Int32.TryParse(runType, out result);
+                if (!check)
+                {
+                    Logger.WriteInfo("Wrong input, please input again.");
+                    ExecuteRpcTask(performance);
+                }
             }
 
             switch (result)
@@ -73,7 +101,7 @@ namespace AElf.Automation.RpcPerformance
                         performance.ExecuteContractsRpc();
                         break;
                     default:
-                        Console.WriteLine("Wrong input, please input again.");
+                        Logger.WriteInfo("Wrong input, please input again.");
                         ExecuteRpcTask(performance);
                         break;
             }
