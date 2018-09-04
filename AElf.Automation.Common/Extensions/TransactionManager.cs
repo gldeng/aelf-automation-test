@@ -11,6 +11,7 @@ using TransactionType = AElf.Automation.Common.Protobuf.TransactionType;
 using System.Security.Cryptography;
 using System.Collections.Generic;
 using System.Linq;
+using AElf.Common.Extensions;
 
 namespace AElf.Automation.Common.Extensions
 {

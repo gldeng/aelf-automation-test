@@ -6,6 +6,7 @@ using AElf.Automation.Common.Extensions;
 using AElf.Cryptography;
 using AElf.Common.Application;
 using AElf.Common.ByteArrayHelpers;
+using AElf.Common.Extensions;
 using AElf.Kernel;
 using Newtonsoft.Json.Linq;
 using NServiceKit.Common;
